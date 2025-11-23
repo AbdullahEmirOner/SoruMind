@@ -1,3 +1,7 @@
+
+![f-4](https://github.com/user-attachments/assets/4a2b6254-031a-4267-a635-3d6da783a368)
+
+
 📘 SoruMind – Eğitimsel Veri Madenciliği ve Soru Analizi Platformu
 
 SoruMind, eğitim çıktılarının analiz edilmesi ve soru veri setlerinden anlamlı bilgiler elde edilmesi amacıyla geliştirilmiş kapsamlı bir Eğitimsel Veri Madenciliği (Educational Data Mining) projesidir. Proje; soru dağılımı analizi, konu bazlı istatistiksel inceleme, frekans hesaplamaları ve eğitim sürecine yönelik veri temelli içgörüler üretmeyi amaçlamaktadır.
