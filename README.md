@@ -120,13 +120,6 @@ Web tabanlı dashboard arayüzü
 
 Kaggle benzeri bir Eğitimsel Analiz Paneli
 
-👨‍💻 Geliştirici
-
-Abdullah Emir Öner
-GitHub: https://github.com/AbdullahEmirOner
-
-E-mail: abdullahemironer@gmail.com
-
 📬 İletişim & Destek
 
 Her türlü öneri, geliştirme talebi veya geri bildirim için bana ulaşabilirsiniz.
