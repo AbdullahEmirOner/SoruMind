@@ -2,32 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    /* Custom Dark Palette Variables */
+    --sm-background: 223 23% 6%;
+    --sm-surface: 226 26% 10%;
+    --sm-surface-light: 226 20% 13%;
+    --sm-accent: 244 100% 68%;
+    --sm-accent-hover: 244 100% 72%;
+    --sm-text: 220 14% 91%;
+    --sm-text-muted: 230 14% 67%;
+    --sm-border: 228 16% 20%;
+
+    /* Default to Dark Theme */
+    --background: 223 23% 6%;
+    --foreground: 220 14% 91%;
+
+    --card: 226 26% 10%;
+    --card-foreground: 220 14% 91%;
+
+    --popover: 226 26% 10%;
+    --popover-foreground: 220 14% 91%;
+
+    --primary: 244 100% 68%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 226 20% 13%;
+    --secondary-foreground: 220 14% 91%;
+
+    --muted: 226 20% 13%;
+    --muted-foreground: 230 14% 67%;
+
+    --accent: 226 20% 13%;
+    --accent-foreground: 220 14% 91%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 228 16% 20%;
+    --input: 228 16% 20%;
+    --ring: 244 100% 68%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 223 23% 6%;
+    --foreground: 220 14% 91%;
+    --card: 226 26% 10%;
+    --card-foreground: 220 14% 91%;
+    --popover: 226 26% 10%;
+    --popover-foreground: 220 14% 91%;
+    --primary: 244 100% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 226 20% 13%;
+    --secondary-foreground: 220 14% 91%;
+    --muted: 226 20% 13%;
+    --muted-foreground: 230 14% 67%;
+    --accent: 226 20% 13%;
+    --accent-foreground: 220 14% 91%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 228 16% 20%;
+    --input: 228 16% 20%;
+    --ring: 244 100% 68%;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
