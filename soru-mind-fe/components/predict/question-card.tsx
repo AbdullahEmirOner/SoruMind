@@ -20,12 +20,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { MathRenderer } from "@/components/common/math-renderer";
 
 interface QuestionProps {
   question: {
     text: string;
     options: string[];
-    correctAnswer: number;
+    correctAnswer: number | string; // Supporting both number (index) or string (letter)
     explanation: string;
     topic: string;
     difficulty: string;
@@ -37,13 +38,41 @@ export function QuestionCard({ question, onNext }: QuestionProps) {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // Helper to determine if the answer is correct
+  // Backend might send "C" (index 2) or numeric index directly
+  const getCorrectIndex = (): number => {
+    if (typeof question.correctAnswer === 'number') {
+      return question.correctAnswer;
+    }
+    // Map A, B, C, D, E to 0, 1, 2, 3, 4
+    const map: Record<string, number> = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4 };
+    return map[question.correctAnswer] ?? -1;
+  };
+
+  // Helper to ensure math content has delimiters
+  const processMathContent = (content: string) => {
+    // Check if content starts with option letter like "A) ", "B) ", etc.
+    const optionMatch = content.match(/^([A-E]\)\s*)/);
+    const prefix = optionMatch ? optionMatch[1] : '';
+    const mainContent = prefix ? content.substring(prefix.length) : content;
+    
+    // If it looks like a math option (contains ^ or \ or {) and doesn't have delimiters, wrap it.
+    const hasLatexChars = /[\^\\{}]/.test(mainContent);
+    const hasDelimiters = /(\$|\\\(|\\\[)/.test(mainContent);
+    
+    if (hasLatexChars && !hasDelimiters) {
+      return prefix + `$${mainContent}$`;
+    }
+    return content;
+  };
+
+  const correctIndex = getCorrectIndex();
+
   const handleSubmit = () => {
     if (selectedOption !== null) {
       setIsSubmitted(true);
     }
   };
-
-  const isCorrect = selectedOption === question.correctAnswer;
 
   return (
     <motion.div
@@ -78,9 +107,9 @@ export function QuestionCard({ question, onNext }: QuestionProps) {
         </CardHeader>
 
         <CardContent className="pt-6 space-y-6">
-          <p className="text-lg text-sm-text leading-relaxed">
-            {question.text}
-          </p>
+          <div className="text-lg text-sm-text leading-relaxed">
+             <MathRenderer content={question.text} />
+          </div>
 
           <RadioGroup
             value={selectedOption?.toString()}
@@ -94,11 +123,11 @@ export function QuestionCard({ question, onNext }: QuestionProps) {
                 key={index}
                 className={cn(
                   "flex items-center space-x-2 rounded-lg border p-4 transition-all",
-                  isSubmitted && index === question.correctAnswer
+                  isSubmitted && index === correctIndex
                     ? "border-green-500/50 bg-green-500/10"
                     : isSubmitted &&
                       selectedOption === index &&
-                      index !== question.correctAnswer
+                      index !== correctIndex
                     ? "border-red-500/50 bg-red-500/10"
                     : selectedOption === index
                     ? "border-sm-accent bg-sm-surface-light"
@@ -113,17 +142,17 @@ export function QuestionCard({ question, onNext }: QuestionProps) {
                 />
                 <Label
                   htmlFor={`option-${index}`}
-                  className="flex-1 cursor-pointer text-sm-text font-normal"
+                  className="flex-1 cursor-pointer text-sm-text font-normal w-full"
                 >
-                  {option}
+                  <MathRenderer content={processMathContent(option)} />
                 </Label>
-                {isSubmitted && index === question.correctAnswer && (
-                  <CheckCircle2 className="h-5 w-5 text-green-400" />
+                {isSubmitted && index === correctIndex && (
+                  <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
                 )}
                 {isSubmitted &&
                   selectedOption === index &&
-                  index !== question.correctAnswer && (
-                    <XCircle className="h-5 w-5 text-red-400" />
+                  index !== correctIndex && (
+                    <XCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
                   )}
               </div>
             ))}
@@ -140,9 +169,9 @@ export function QuestionCard({ question, onNext }: QuestionProps) {
                   <BookOpen className="h-4 w-4 text-sm-accent" />
                   Çözüm Açıklaması
                 </h4>
-                <p className="text-sm text-sm-text-muted">
-                  {question.explanation}
-                </p>
+                <div className="text-sm text-sm-text-muted">
+                   <MathRenderer content={question.explanation} />
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
