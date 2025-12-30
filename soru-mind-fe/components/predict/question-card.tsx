@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -32,11 +32,18 @@ interface QuestionProps {
     difficulty: string;
   };
   onNext: () => void;
+  onResult?: (status: 'correct' | 'wrong' | 'empty') => void;
 }
 
-export function QuestionCard({ question, onNext }: QuestionProps) {
+export function QuestionCard({ question, onNext, onResult }: QuestionProps) {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Reset state when question changes
+  useEffect(() => {
+    setSelectedOption(null);
+    setIsSubmitted(false);
+  }, [question]);
 
   // Helper to determine if the answer is correct
   // Backend might send "C" (index 2) or numeric index directly
@@ -49,28 +56,16 @@ export function QuestionCard({ question, onNext }: QuestionProps) {
     return map[question.correctAnswer] ?? -1;
   };
 
-  // Helper to ensure math content has delimiters
-  const processMathContent = (content: string) => {
-    // Check if content starts with option letter like "A) ", "B) ", etc.
-    const optionMatch = content.match(/^([A-E]\)\s*)/);
-    const prefix = optionMatch ? optionMatch[1] : '';
-    const mainContent = prefix ? content.substring(prefix.length) : content;
-    
-    // If it looks like a math option (contains ^ or \ or {) and doesn't have delimiters, wrap it.
-    const hasLatexChars = /[\^\\{}]/.test(mainContent);
-    const hasDelimiters = /(\$|\\\(|\\\[)/.test(mainContent);
-    
-    if (hasLatexChars && !hasDelimiters) {
-      return prefix + `$${mainContent}$`;
-    }
-    return content;
-  };
 
   const correctIndex = getCorrectIndex();
 
   const handleSubmit = () => {
     if (selectedOption !== null) {
       setIsSubmitted(true);
+      if (onResult) {
+        const isCorrect = selectedOption === correctIndex;
+        onResult(isCorrect ? 'correct' : 'wrong');
+      }
     }
   };
 
@@ -144,7 +139,7 @@ export function QuestionCard({ question, onNext }: QuestionProps) {
                   htmlFor={`option-${index}`}
                   className="flex-1 cursor-pointer text-sm-text font-normal w-full"
                 >
-                  <MathRenderer content={processMathContent(option)} />
+                  <MathRenderer content={option} />
                 </Label>
                 {isSubmitted && index === correctIndex && (
                   <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />

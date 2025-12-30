@@ -14,7 +14,7 @@ export class MathQuestionService implements OnModuleInit {
   onModuleInit() {
     this.loadDataset();
     this.model = new ChatGoogleGenerativeAI({
-      apiKey: "AIzaSyAItH5tNt7A3la4XQxfVpamjTQDbFkLDUI",
+      apiKey: "AIzaSyD5Q0eotE18CHc7aDuwNPurouzcpJ6LBao",
       model: 'gemini-2.5-flash',
       temperature: 0.7,
     });

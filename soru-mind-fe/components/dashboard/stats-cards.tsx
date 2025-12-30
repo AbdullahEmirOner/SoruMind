@@ -1,38 +1,42 @@
+"use client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrainCircuit, CheckCircle2, Clock, FileText } from "lucide-react";
-
-const stats = [
-  {
-    title: "Tahmini Başarı",
-    value: "%84",
-    description: "Geçen haftaya göre +%2.5",
-    icon: BrainCircuit,
-    color: "text-sm-accent",
-  },
-  {
-    title: "Tamamlanan Testler",
-    value: "12",
-    description: "Bu hafta 4 test",
-    icon: FileText,
-    color: "text-blue-400",
-  },
-  {
-    title: "Doğru Cevaplar",
-    value: "148",
-    description: "%82 başarı oranı",
-    icon: CheckCircle2,
-    color: "text-green-400",
-  },
-  {
-    title: "Çalışma Süresi",
-    value: "14s 30d",
-    description: "Günlük ort: 2s",
-    icon: Clock,
-    color: "text-orange-400",
-  },
-];
+import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 
 export function StatsCards() {
+  const { totalQuestions, totalCorrect, successRate, studyTime } = useDashboardStats();
+
+  const stats = [
+    {
+      title: "Tahmini Başarı",
+      value: `%${successRate}`,
+      description: "Genel başarı oranı",
+      icon: BrainCircuit,
+      color: "text-sm-accent",
+    },
+    {
+      title: "Tamamlanan Testler",
+      value: totalQuestions.toString(),
+      description: "Çözülen Soru Sayısı",
+      icon: FileText,
+      color: "text-blue-400",
+    },
+    {
+      title: "Doğru Cevaplar",
+      value: totalCorrect.toString(),
+      description: `%${successRate} başarı oranı`,
+      icon: CheckCircle2,
+      color: "text-green-400",
+    },
+    {
+      title: "Çalışma Süresi",
+      value: studyTime,
+      description: "Toplam süre",
+      icon: Clock,
+      color: "text-orange-400",
+    },
+  ];
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => (
