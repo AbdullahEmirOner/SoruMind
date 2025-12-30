@@ -52,7 +52,7 @@ let MathQuestionService = MathQuestionService_1 = class MathQuestionService {
     onModuleInit() {
         this.loadDataset();
         this.model = new google_genai_1.ChatGoogleGenerativeAI({
-            apiKey: "AIzaSyD5Q0eotE18CHc7aDuwNPurouzcpJ6LBao",
+            apiKey: "test",
             model: 'gemini-2.5-flash',
             temperature: 0.7,
         });
@@ -111,6 +111,52 @@ Kullanacağın Çıktı Formatı (SADECE BU JSON'U DÖNDÜR):
     "difficulty": "Orta"
 }
   `;
+        return this.generateWithPrompt(prompt);
+    }
+    async generateQuestionFromContext(dto) {
+        const { topic, details } = dto;
+        const examples = this.getRandomExamples(3);
+        const fewShotText = examples.map((ex, i) => `
+Ornek ${i + 1}:
+Soru: ${ex.soru_metni}
+Konu: ${ex.ana_konu}
+Zorluk: ${ex.zorluk_seviyesi}
+Dogru Cevap: ${ex.doğru}
+    `).join('\n');
+        const prompt = `
+Sen bir matematik soru üreticisin. Aşağıdaki parametrelere göre yeni ve özgün bir matematik sorusu üret.
+
+PARAMETRELER:
+Konu: ${topic}
+Detaylar: ${details || 'Belirtilmemiş, standart LGS zorluğunda olsun.'}
+
+ÖNEMLİ KURALLAR:
+1. Soru, verilen "Konu" ile ilgili olmalı.
+2. "Detaylar" kısmındaki isteklere DİKKAT ET.
+3. Soru metni anlaşılır ve net olmalı.
+4. 5 adet seçenek (A, B, C, D, E) olmalı.
+5. Cevap kesinlikle seçeneklerden biri olmalı.
+6. Çıktın SADECE JSON formatında olmalı, başka hiçbir açıklama yazma.
+7. "correctAnswer" alanı doğru seçeneğin HARFİ olmalı ("A", "B", "C", "D" veya "E").
+8. Matematiksel ifadelerde üs için ^ kullan (örn: 2^3). LaTeX kullanma, düz metin kullan.
+9. Parantez ve matematiksel sembolleri düzgün kullan.
+
+ÖRNEK SORULAR (Format ve stil açısından referans al):
+${fewShotText}
+
+Kullanacağın Çıktı Formatı (SADECE BU JSON'U DÖNDÜR):
+{
+    "text": "Soru metni buraya",
+    "options": ["A seçeneği", "B seçeneği", "C seçeneği", "D seçeneği", "E seçeneği"],
+    "correctAnswer": "A",
+    "explanation": "Çözüm açıklaması buraya",
+    "topic": "${topic}",
+    "difficulty": "Orta"
+}
+`;
+        return this.generateWithPrompt(prompt);
+    }
+    async generateWithPrompt(prompt) {
         try {
             this.logger.log('Navigating to Gemini API...');
             const response = await this.model.invoke(prompt);

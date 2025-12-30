@@ -13,6 +13,7 @@ export interface MathQuestion {
   difficulty: string;
   timestamp?: number;
   status?: 'correct' | 'wrong' | 'empty';
+  userAnswer?: number;
   // Keep flexible for additional fields if needed
   [key: string]: any;
 }
@@ -58,10 +59,10 @@ export function useQuestionHistory() {
     [history, saveHistory]
   );
 
-  const updateHistoryStatus = useCallback((questionText: string, status: 'correct' | 'wrong' | 'empty') => {
+  const updateHistoryStatus = useCallback((questionText: string, status: 'correct' | 'wrong' | 'empty', userAnswer?: number) => {
     setHistory((prev) => {
       const newHistory = prev.map((item) => 
-        item.text === questionText ? { ...item, status } : item
+        item.text === questionText ? { ...item, status, userAnswer } : item
       );
       try {
         localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));

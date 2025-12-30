@@ -6,6 +6,7 @@ import { TopicStrengthChart } from "@/components/dashboard/topic-strength-chart"
 import { QuestionDistributionChart } from "@/components/dashboard/question-distribution-chart";
 import { UpcomingQuestions } from "@/components/dashboard/upcoming-questions";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
+import { QuestionHistoryCard } from "@/components/dashboard/question-history-card";
 
 export default function DashboardPage() {
   return (
@@ -34,7 +35,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 grid-cols-1">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <QuestionHistoryCard />
         <RecentActivity />
       </div>
     </div>

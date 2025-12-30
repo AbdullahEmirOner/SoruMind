@@ -3,7 +3,7 @@
 import { LoadingAnimation } from "@/components/predict/loading-animation";
 import { QuestionCard } from "@/components/predict/question-card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RefreshCw, AlertCircle, History } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertCircle, History, MoreVertical, ExternalLink, Copy, Search, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { useMathQuestion } from "@/hooks/use-math-question";
 import { useQuestionHistory, MathQuestion } from "@/hooks/use-question-history";
@@ -16,22 +16,32 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { MathRenderer } from "@/components/common/math-renderer";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { QuestionPreviewDialog } from "@/components/predict/question-preview-dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { CheckCircle2, XCircle, MinusCircle, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SessionStats } from "@/components/predict/session-stats";
 import { useStudyTimer } from "@/hooks/use-study-timer";
+import { apiClient } from "@/lib/api-client";
+import { MathRenderer } from "@/components/common/math-renderer";
+import { cn } from "@/lib/utils";
 
 export default function PredictSlugPage({ params }: { params: { slug: string } }) {
   const { data, isLoading, isFetching, error, refetch } = useMathQuestion();
   const { history, addToHistory, updateHistoryStatus } = useQuestionHistory();
   const [displayedQuestion, setDisplayedQuestion] = useState<MathQuestion | null>(null);
-  const [loadingPreview, setLoadingPreview] = useState<number | null>(null);
+  const [loadingSimilar, setLoadingSimilar] = useState<string | null>(null);
+  
+  // Preview State
+  const [previewQuestion, setPreviewQuestion] = useState<MathQuestion | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
   const { startTimer, stopTimer } = useStudyTimer();
 
   // Start timer on mount, stop on unmount
@@ -53,14 +63,19 @@ export default function PredictSlugPage({ params }: { params: { slug: string } }
     refetch();
   };
 
-  const handleResult = (status: 'correct' | 'wrong' | 'empty') => {
+  const handleResult = (status: 'correct' | 'wrong' | 'empty', userAnswer?: number) => {
     if (displayedQuestion) {
-      updateHistoryStatus(displayedQuestion.text, status);
+      updateHistoryStatus(displayedQuestion.text, status, userAnswer);
     }
   };
 
   const handleHistorySelect = (q: MathQuestion) => {
     setDisplayedQuestion(q);
+  };
+  
+  const handlePreview = (q: MathQuestion) => {
+    setPreviewQuestion(q);
+    setIsPreviewOpen(true);
   };
 
   const formatTime = (timestamp?: number) => {
@@ -71,28 +86,33 @@ export default function PredictSlugPage({ params }: { params: { slug: string } }
     }).format(new Date(timestamp));
   };
 
-  const SimluatedLoadingPreview = ({ content }: { content: string }) => {
-    const [show, setShow] = useState(false);
-    
-    useEffect(() => {
-      const timer = setTimeout(() => setShow(true), 600); // Fast load simulation
-      return () => clearTimeout(timer);
-    }, []);
-
-    if (!show) {
-      return (
-        <div className="flex items-center justify-center p-8">
-          <Loader2 className="h-6 w-6 animate-spin text-white/70" />
-        </div>
-      );
+  const handleGenerateSimilar = async (item: MathQuestion) => {
+    try {
+      setLoadingSimilar(item.text); // Use text as ID for loading state
+      const newQuestion = await apiClient.generateQuestionFromContext({
+        topic: item.topic,
+        details: `Benzer soru üret: ${item.text}`,
+      });
+      
+      // Convert DTO to MathQuestion format
+      const mathQuestion: MathQuestion = {
+        ...newQuestion,
+        timestamp: Date.now(),
+        status: 'empty',
+      };
+      
+      setDisplayedQuestion(mathQuestion);
+      addToHistory(mathQuestion);
+      
+    } catch (err) {
+      console.error("Failed to generate similar question:", err);
+      // Optionally show toast here
+    } finally {
+      setLoadingSimilar(null);
     }
-
-    return (
-      <div className="text-xs text-slate-100">
-        <MathRenderer content={content} />
-      </div>
-    );
   };
+
+
 
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto w-full">
@@ -126,16 +146,12 @@ export default function PredictSlugPage({ params }: { params: { slug: string } }
               {history.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center">Henüz geçmiş yok.</p>
               ) : (
-                <TooltipProvider delayDuration={0}>
+                <>
                   {history.map((item, index) => (
-                    <Tooltip key={index} onOpenChange={(open) => {
-                      if (open) setLoadingPreview(index);
-                      else setLoadingPreview(null);
-                    }}>
-                      <TooltipTrigger asChild>
+                    <DropdownMenu key={index}>
+                      <DropdownMenuTrigger asChild>
                         <div 
                           className="p-3 border rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors flex flex-col gap-1 group relative overflow-hidden"
-                          onClick={() => handleHistorySelect(item)}
                         >
                           <div className="flex justify-between items-center z-10">
                              <div className="flex items-center gap-2">
@@ -159,27 +175,49 @@ export default function PredictSlugPage({ params }: { params: { slug: string } }
                              </span>
                           </div>
                           
-                          <p className="text-sm font-medium line-clamp-2 mt-1 pl-6">
+                          <p className="text-sm font-medium line-clamp-2 mt-1 px-1">
                             {item.topic}
                           </p>
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                          </div>
                         </div>
-                      </TooltipTrigger>
-                      <TooltipContent 
-                        side="left" 
-                        className="max-w-[320px] p-4 backdrop-blur-xl bg-black/60 border border-white/10 shadow-2xl text-slate-100 rounded-2xl"
-                        sideOffset={10}
-                      >
-                         {loadingPreview === index && (
-                           <SimluatedLoadingPreview content={item.text} />
-                         )}
-                      </TooltipContent>
-                    </Tooltip>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[200px]">
+                        <DropdownMenuItem onClick={() => handlePreview(item)}>
+                          <Search className="mr-2 h-4 w-4" />
+                          Ön İzleme
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleHistorySelect(item)}>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Soruya Git
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleGenerateSimilar(item)}
+                          disabled={loadingSimilar === item.text}
+                        >
+                          {loadingSimilar === item.text ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                          )}
+                          Benzer Soru Üret
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   ))}
-                </TooltipProvider>
+                </>
               )}
             </div>
           </SheetContent>
         </Sheet>
+        
+        {/* Preview Dialog */}
+        <QuestionPreviewDialog 
+          open={isPreviewOpen} 
+          onOpenChange={setIsPreviewOpen} 
+          question={previewQuestion} 
+        />
       </div>
 
       <div className="flex-1 flex flex-col justify-center">

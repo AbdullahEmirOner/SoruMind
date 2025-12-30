@@ -18,7 +18,7 @@ import {
   ArrowRight,
   BookOpen,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatExplanation } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { MathRenderer } from "@/components/common/math-renderer";
 
@@ -32,7 +32,7 @@ interface QuestionProps {
     difficulty: string;
   };
   onNext: () => void;
-  onResult?: (status: 'correct' | 'wrong' | 'empty') => void;
+  onResult?: (status: 'correct' | 'wrong' | 'empty', userAnswer?: number) => void;
 }
 
 export function QuestionCard({ question, onNext, onResult }: QuestionProps) {
@@ -64,7 +64,7 @@ export function QuestionCard({ question, onNext, onResult }: QuestionProps) {
       setIsSubmitted(true);
       if (onResult) {
         const isCorrect = selectedOption === correctIndex;
-        onResult(isCorrect ? 'correct' : 'wrong');
+        onResult(isCorrect ? 'correct' : 'wrong', selectedOption);
       }
     }
   };
@@ -164,8 +164,8 @@ export function QuestionCard({ question, onNext, onResult }: QuestionProps) {
                   <BookOpen className="h-4 w-4 text-sm-accent" />
                   Çözüm Açıklaması
                 </h4>
-                <div className="text-sm text-sm-text-muted">
-                   <MathRenderer content={question.explanation} />
+                <div className="text-sm text-sm-text-muted leading-relaxed tracking-wide whitespace-pre-wrap">
+                   <MathRenderer content={formatExplanation(question.explanation)} />
                 </div>
               </motion.div>
             )}
