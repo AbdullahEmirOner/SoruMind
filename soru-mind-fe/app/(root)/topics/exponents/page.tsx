@@ -61,19 +61,142 @@ export default function ExponentsPage() {
   const [gap, setGap] = useState(0.1)
 
   const [activeDialog, setActiveDialog] = useState<{name: string, text: string} | null>(null)
+  const [activeChaser, setActiveChaser] = useState<string | null>(null)
+  const [quiz, setQuiz] = useState<{q: string, a: number} | null>(null)
+  const [userAnswer, setUserAnswer] = useState('')
   const [dialogIndices, setDialogIndices] = useState<Record<string, number>>({})
+  const [isLightning, setIsLightning] = useState(false)
+
+  const generateQuestion = useCallback(() => {
+      const base = Math.floor(Math.random() * 9) + 2 // 2-10
+      const exp = Math.floor(Math.random() * 4) + 1 // 1-4
+      return { q: `${base}^${exp}`, a: Math.pow(base, exp) }
+  }, [])
+
+  const [showJumpscare, setShowJumpscare] = useState(false)
+  const [jumpscareVideo, setJumpscareVideo] = useState("U_RvyrOoO48") // Default: Evel
+
+  // Sound Synthesis - Undertaker Gong
+  const playGong = useCallback(() => {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContext) return
+    
+    const ctx = new AudioContext()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    
+    osc.type = 'triangle' // Metallic sound
+    osc.frequency.setValueAtTime(80, ctx.currentTime) // Deep pitch (Low G)
+    osc.frequency.exponentialRampToValueAtTime(1, ctx.currentTime + 3) // Pitch drop (Doooom)
+    
+    gain.gain.setValueAtTime(0.5, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 4) // Long decay
+    
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 4)
+  }, [])
 
   const handleInteract = useCallback((name: string) => {
-     const lines = dialogues[name] || ["..."]
-     const currentIndex = dialogIndices[name] || 0
-     
-     setActiveDialog({ name, text: lines[currentIndex] })
-     
-     setDialogIndices(prev => ({
-        ...prev,
-        [name]: (currentIndex + 1) % lines.length
-     }))
-  }, [dialogIndices])
+     if (name === 'Hoca') {
+         // Hoca Wrath Logic - Undertaker Style
+         setIsLightning(true)
+         playGong() // BONG!
+         
+         setTimeout(() => setIsLightning(false), 200) // Flash
+         setTimeout(() => { setIsLightning(true); setTimeout(() => setIsLightning(false), 100) }, 400) // Double flash
+
+         // Demon Voice - Layered
+         const scream = (pitch: number, rate: number, volume: number) => {
+             const msg = new SpeechSynthesisUtterance("OTUR! SIFIR!")
+             msg.lang = 'tr-TR'
+             msg.rate = rate
+             msg.pitch = pitch
+             msg.volume = volume
+             window.speechSynthesis.speak(msg)
+         }
+
+         scream(0.1, 0.4, 1) // Deep demon
+         scream(0.5, 0.5, 0.8) // Mid layer
+         scream(1.5, 0.6, 0.5) // High scream effect
+
+         // Hoca Quiz Mode
+         setActiveChaser('Hoca')
+         const q = generateQuestion()
+         setQuiz(q)
+         setActiveDialog({ name, text: `OTUR! SIFIR! Hemen şu soruyu çöz yoksa ruhunu alırım: ${q.q}?` })
+     } else {
+         // Students start chasing and asking questions!
+         if (activeChaser === name) return // Already chasing
+         
+         setActiveChaser(name)
+         const q = generateQuestion()
+         setQuiz(q)
+         setActiveDialog({ name, text: `Beni yakalamadan önce şu soruyu çöz: ${q.q} kaç eder?` })
+         
+         // Trigger audio
+         const msg = new SpeechSynthesisUtterance("Hey! Soruyu çözmeden gidemezsin!")
+         msg.lang = 'tr-TR'
+         window.speechSynthesis.speak(msg)
+     }
+  }, [dialogIndices, activeChaser, generateQuestion, playGong])
+
+  const submitAnswer = () => {
+      if (!quiz) return
+      if (parseInt(userAnswer) === quiz.a) {
+          // Correct Answer
+          
+          if (activeChaser === 'Hoca') {
+             // REWARD VIDEO - RANDOMIZED
+             const isVariant = Math.random() > 0.5
+             if (isVariant) {
+                 // "Doğru Bıldın" (11s - 16s)
+                 setJumpscareVideo("QY-0JezhBdY?start=11&end=16")
+             } else {
+                 // "Helal Olsun" (8s - 13s)
+                 setJumpscareVideo("i4hIgdA6RSE?start=8&end=13")
+             }
+             setShowJumpscare(true)
+             setTimeout(() => setShowJumpscare(false), 5000)
+          }
+
+          const msg = new SpeechSynthesisUtterance("Aferin! Doğru bildin.")
+          msg.lang = 'tr-TR'
+          window.speechSynthesis.speak(msg)
+          
+          setActiveChaser(null)
+          setQuiz(null)
+          setActiveDialog(null)
+          setUserAnswer('')
+      } else {
+          // Wrong Answer Handling
+          if (activeChaser === 'Hoca') {
+             // JUMPSCARE TRIGGER - RANDOMIZED VIDEO
+             setShowJumpscare(true)
+             
+             // RANDOMIZED VIDEO PUNISHMENT
+             const isVariant = Math.random() > 0.5
+             if (isVariant) {
+                 // "Al Gırdın Gırdın" (Funny 4s Clip)
+                 setJumpscareVideo("lojkhQE2IBU?start=40&end=44")
+                 setTimeout(() => setShowJumpscare(false), 5000) 
+             } else {
+                 // "Evel/Child" (Scary 7s Clip)
+                 setJumpscareVideo("U_RvyrOoO48")
+                 setTimeout(() => setShowJumpscare(false), 7000)
+             } 
+          }
+
+          const msg = new SpeechSynthesisUtterance("YANLIŞ! Tekrar dene!")
+          msg.lang = 'tr-TR'
+          msg.rate = 1.2
+          msg.pitch = 1.2
+          window.speechSynthesis.speak(msg)
+          
+          setActiveDialog(prev => prev ? ({ ...prev, text: "YANLIŞ! Tekrar dene! " + quiz.q }) : null)
+      }
+  }
 
   const activeExponent = mode === 'zero' ? 0 : exponent
   const isPositive = mode === 'positive'
@@ -85,11 +208,71 @@ export default function ExponentsPage() {
   return (
     <KeyboardControls map={map}>
     <div className="w-full h-[calc(100vh-4rem)] relative bg-slate-900 overflow-hidden flex flex-col md:flex-row">
+      
+      {/* CSS Lightning Overlay - Guaranteed Flash */}
+      <div 
+        className="fixed inset-0 bg-white z-[100] pointer-events-none transition-opacity duration-75"
+        style={{ opacity: isLightning ? 1 : 0 }}
+      />
+      
+      {/* Jumpscare Video Overlay */}
+      {showJumpscare && (
+          <div className="fixed inset-0 z-[200] bg-black flex items-center justify-center">
+              <div className="relative w-full h-full md:w-[80vw] md:h-[80vh]">
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    src={`https://www.youtube.com/embed/${jumpscareVideo}${jumpscareVideo.includes('?') ? '&' : '?'}autoplay=1&controls=0&rel=0&showinfo=0&mute=0`}
+                    title="Punishment" 
+                    frameBorder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                    className="pointer-events-none"
+                  ></iframe>
+              </div>
+              {/* Fallback close button in case duration mismatch */}
+              <button 
+                onClick={() => setShowJumpscare(false)}
+                className="absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded font-bold hover:bg-red-700 pointer-events-auto"
+              >
+                  KAPAT (CLOSE)
+              </button>
+          </div>
+      )}
+
+
+      
+
+
       <div className="w-full md:w-96 bg-white/95 backdrop-blur shadow-2xl z-20 p-6 flex flex-col gap-6 md:h-full overflow-y-auto border-r border-slate-200">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Üslü Sayılar</h1>
           <p className="text-slate-500 text-sm mt-1">RPG Matematik Labı v2.0</p>
         </div>
+        
+        {/* QUIZ UI */}
+        {quiz && activeChaser && (
+            <div className="p-4 bg-red-100 border-2 border-red-500 rounded-xl animate-pulse">
+                <h3 className="text-red-800 font-bold uppercase text-sm mb-2">⚠️ {activeChaser} SENİ KOVALIYOR!</h3>
+                <div className="text-3xl font-black text-center mb-4">{quiz.q} = ?</div>
+                <div className="flex gap-2">
+                    <input 
+                        type="number" 
+                        value={userAnswer}
+                        onChange={(e) => setUserAnswer(e.target.value)}
+                        className="w-full p-2 rounded border border-slate-300 font-mono text-lg"
+                        placeholder="Sonuç..."
+                        onKeyDown={(e) => e.key === 'Enter' && submitAnswer()}
+                    />
+                    <button 
+                        onClick={submitAnswer}
+                        className="bg-red-600 text-white font-bold px-4 rounded hover:bg-red-700"
+                    >
+                        ÇÖZ
+                    </button>
+                </div>
+            </div>
+        )}
 
         <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -169,17 +352,17 @@ export default function ExponentsPage() {
           <ambientLight intensity={0.5} />
           <Environment preset="night" background={false} />
 
-          <Classroom onInteract={handleInteract} />
+          <Classroom onInteract={handleInteract} activeChaser={activeChaser} isLightning={isLightning} />
           
-          <Center top position={[0, 1.5, -5]}>
+          <group position={[0, 3.5, 0]} scale={1.8}>
               {!isTooLarge && (
-                  <group scale={1.8}>
+                  <>
                     {mode === 'positive' && <ExplodingCube base={base} exponent={exponent} gap={gap} />}
                     {mode === 'zero' && <ExplodingCube base={base} exponent={0} gap={0} />}
                     {mode === 'negative' && <DivisionCube base={base} exponent={exponent} />}
-                  </group>
+                  </>
               )}
-          </Center>
+          </group>
           <PointerLockControls />
         </Canvas>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 border border-white/20 rounded-full pointer-events-none" />
