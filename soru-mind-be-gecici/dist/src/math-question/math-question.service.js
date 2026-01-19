@@ -52,7 +52,7 @@ let MathQuestionService = MathQuestionService_1 = class MathQuestionService {
     onModuleInit() {
         this.loadDataset();
         this.model = new google_genai_1.ChatGoogleGenerativeAI({
-            apiKey: "test",
+            apiKey: 'AIzaSyAR9UkrAMtT902J_b5aHaJufUETaST_1Y0',
             model: 'gemini-2.5-flash',
             temperature: 0.7,
         });
@@ -78,13 +78,15 @@ let MathQuestionService = MathQuestionService_1 = class MathQuestionService {
     }
     async generateQuestion() {
         const examples = this.getRandomExamples(3);
-        const fewShotText = examples.map((ex, i) => `
+        const fewShotText = examples
+            .map((ex, i) => `
 Ornek ${i + 1}:
 Soru: ${ex.soru_metni}
 Konu: ${ex.ana_konu}
 Zorluk: ${ex.zorluk_seviyesi}
 Dogru Cevap: ${ex.doğru}
-    `).join('\n');
+    `)
+            .join('\n');
         const prompt = `
 Sen bir matematik soru üreticisin. Aşağıdaki örneklere benzer, "Üslü Sayılar" konusunda yeni ve özgün bir matematik sorusu üret.
 Sorular LGS (Lise Geçiş Sınavı) seviyesinde olmalı.
@@ -116,13 +118,15 @@ Kullanacağın Çıktı Formatı (SADECE BU JSON'U DÖNDÜR):
     async generateQuestionFromContext(dto) {
         const { topic, details } = dto;
         const examples = this.getRandomExamples(3);
-        const fewShotText = examples.map((ex, i) => `
+        const fewShotText = examples
+            .map((ex, i) => `
 Ornek ${i + 1}:
 Soru: ${ex.soru_metni}
 Konu: ${ex.ana_konu}
 Zorluk: ${ex.zorluk_seviyesi}
 Dogru Cevap: ${ex.doğru}
-    `).join('\n');
+    `)
+            .join('\n');
         const prompt = `
 Sen bir matematik soru üreticisin. Aşağıdaki parametrelere göre yeni ve özgün bir matematik sorusu üret.
 
@@ -163,7 +167,10 @@ Kullanacağın Çıktı Formatı (SADECE BU JSON'U DÖNDÜR):
             this.logger.log('Gemini API response received.');
             const content = response.content;
             this.logger.log(`Raw Content: ${content}`);
-            let cleanedContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            let cleanedContent = content
+                .replace(/```json/g, '')
+                .replace(/```/g, '')
+                .trim();
             const firstBrace = cleanedContent.indexOf('{');
             const lastBrace = cleanedContent.lastIndexOf('}');
             if (firstBrace !== -1 && lastBrace !== -1) {
@@ -191,7 +198,7 @@ Kullanacağın Çıktı Formatı (SADECE BU JSON'U DÖNDÜR):
                 correctAnswer: parsed.correctAnswer,
                 explanation: parsed.explanation,
                 topic: parsed.topic || 'Uslu Sayilar',
-                difficulty: parsed.difficulty || 'Orta'
+                difficulty: parsed.difficulty || 'Orta',
             };
         }
         catch (error) {

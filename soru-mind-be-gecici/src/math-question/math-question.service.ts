@@ -1,4 +1,3 @@
-
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 import * as path from 'path';
@@ -15,7 +14,7 @@ export class MathQuestionService implements OnModuleInit {
   onModuleInit() {
     this.loadDataset();
     this.model = new ChatGoogleGenerativeAI({
-      apiKey: "test",
+      apiKey: 'AIzaSyAR9UkrAMtT902J_b5aHaJufUETaST_1Y0',
       model: 'gemini-2.5-flash',
       temperature: 0.7,
     });
@@ -36,7 +35,7 @@ export class MathQuestionService implements OnModuleInit {
 
   private getRandomExamples(count: number): any[] {
     if (this.dataset.length === 0) return [];
-    
+
     // Sort randomly and pick first n
     const shuffled = [...this.dataset].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
@@ -44,16 +43,20 @@ export class MathQuestionService implements OnModuleInit {
 
   async generateQuestion(): Promise<GeneratedQuestionDto> {
     const examples = this.getRandomExamples(3);
-    
-    const fewShotText = examples.map((ex, i) => `
+
+    const fewShotText = examples
+      .map(
+        (ex, i) => `
 Ornek ${i + 1}:
 Soru: ${ex.soru_metni}
 Konu: ${ex.ana_konu}
 Zorluk: ${ex.zorluk_seviyesi}
 Dogru Cevap: ${ex.doğru}
-    `).join('\n');
+    `,
+      )
+      .join('\n');
 
-      const prompt = `
+    const prompt = `
 Sen bir matematik soru üreticisin. Aşağıdaki örneklere benzer, "Üslü Sayılar" konusunda yeni ve özgün bir matematik sorusu üret.
 Sorular LGS (Lise Geçiş Sınavı) seviyesinde olmalı.
 
@@ -83,17 +86,23 @@ Kullanacağın Çıktı Formatı (SADECE BU JSON'U DÖNDÜR):
     return this.generateWithPrompt(prompt);
   }
 
-  async generateQuestionFromContext(dto: GenerateContextDto): Promise<GeneratedQuestionDto> {
+  async generateQuestionFromContext(
+    dto: GenerateContextDto,
+  ): Promise<GeneratedQuestionDto> {
     const { topic, details } = dto;
     const examples = this.getRandomExamples(3);
-    
-    const fewShotText = examples.map((ex, i) => `
+
+    const fewShotText = examples
+      .map(
+        (ex, i) => `
 Ornek ${i + 1}:
 Soru: ${ex.soru_metni}
 Konu: ${ex.ana_konu}
 Zorluk: ${ex.zorluk_seviyesi}
 Dogru Cevap: ${ex.doğru}
-    `).join('\n');
+    `,
+      )
+      .join('\n');
 
     const prompt = `
 Sen bir matematik soru üreticisin. Aşağıdaki parametrelere göre yeni ve özgün bir matematik sorusu üret.
@@ -130,54 +139,61 @@ Kullanacağın Çıktı Formatı (SADECE BU JSON'U DÖNDÜR):
     return this.generateWithPrompt(prompt);
   }
 
-  private async generateWithPrompt(prompt: string): Promise<GeneratedQuestionDto> {
+  private async generateWithPrompt(
+    prompt: string,
+  ): Promise<GeneratedQuestionDto> {
     try {
       this.logger.log('Navigating to Gemini API...');
       const response = await this.model.invoke(prompt);
       this.logger.log('Gemini API response received.');
-      
+
       const content = response.content as string;
       this.logger.log(`Raw Content: ${content}`);
-      
+
       // Clean markdown code blocks if present and extract JSON object
-      let cleanedContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
-      
+      let cleanedContent = content
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim();
+
       // Attempt to fix common JSON escaping issues if parse fails first time
       // But first, just try to find the first '{' and last '}'
       const firstBrace = cleanedContent.indexOf('{');
       const lastBrace = cleanedContent.lastIndexOf('}');
-      
+
       if (firstBrace !== -1 && lastBrace !== -1) {
-          cleanedContent = cleanedContent.substring(firstBrace, lastBrace + 1);
+        cleanedContent = cleanedContent.substring(firstBrace, lastBrace + 1);
       }
 
       let parsed;
       try {
         parsed = JSON.parse(cleanedContent);
       } catch (e) {
-          this.logger.warn('First JSON parse failed, attempting to sanitize escaped characters...');
-          // Fallback: This time actually try to parse the sanitized string!
-          // Replace single backslashes with double backslashes, but define a more careful regex if possible
-          // For now, let's try a simple global replace and see if it helps with LaTeX
-          try {
-             // Basic attempt to fix LaTeX like \frac into \\frac
-             // This is risky but might save the day for simple cases
-             const sanitized = cleanedContent.replace(/\\/g, '\\\\');
-             parsed = JSON.parse(sanitized); 
-             this.logger.log('Sanitization successful.');
-          } catch (e2) {
-             this.logger.error('JSON Parse Failed. Raw content was:', content);
-             throw e; // Throw original error
-          }
+        this.logger.warn(
+          'First JSON parse failed, attempting to sanitize escaped characters...',
+        );
+        // Fallback: This time actually try to parse the sanitized string!
+        // Replace single backslashes with double backslashes, but define a more careful regex if possible
+        // For now, let's try a simple global replace and see if it helps with LaTeX
+        try {
+          // Basic attempt to fix LaTeX like \frac into \\frac
+          // This is risky but might save the day for simple cases
+          const sanitized = cleanedContent.replace(/\\/g, '\\\\');
+          parsed = JSON.parse(sanitized);
+          this.logger.log('Sanitization successful.');
+        } catch (e2) {
+          this.logger.error('JSON Parse Failed. Raw content was:', content);
+          throw e; // Throw original error
+        }
       }
-      
+
       return {
         text: parsed.text,
         options: parsed.options,
         correctAnswer: parsed.correctAnswer,
         explanation: parsed.explanation,
         topic: parsed.topic || 'Uslu Sayilar',
-        difficulty: parsed.difficulty || 'Orta'
+        difficulty: parsed.difficulty || 'Orta',
       };
     } catch (error) {
       this.logger.error('Error in generateQuestion:', error);
